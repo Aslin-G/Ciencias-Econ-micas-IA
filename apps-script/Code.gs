@@ -211,7 +211,7 @@ function setup() {
   Object.keys(HEADERS).forEach(sheet);
   const ss = book();
   Object.keys(HEADERS).forEach(n => {
-    const sh = ss.getSheetByName(n); sh.autoResizeColumns(1, Math.min(HEADERS[n].length, 8));
+    const sh = ss.getSheetByName(n); HEADERS[n].forEach((h, i) => sh.setColumnWidth(i + 1, /^(Correo|Nombre|Logros)$/.test(h) ? 230 : /JSON|Detalle/.test(h) ? 420 : 150));
     if (n === 'Interacciones') sh.setColumnWidth(8, 520);
     if (n === 'Respuestas') { sh.setColumnWidth(7, 340); sh.setColumnWidth(8, 420); sh.setColumnWidth(9, 420); }
     if (n === 'Chat') { sh.setColumnWidth(6, 360); sh.setColumnWidth(7, 520); }
