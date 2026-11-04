@@ -216,7 +216,7 @@ function setup() {
     if (n === 'Respuestas') { sh.setColumnWidth(7, 340); sh.setColumnWidth(8, 420); sh.setColumnWidth(9, 420); }
     if (n === 'Chat') { sh.setColumnWidth(6, 360); sh.setColumnWidth(7, 520); }
   });
-  let p = ss.getSheetByName('Panel'); if (!p) p = ss.insertSheet('Panel', 0);
+  let p = ss.getSheetByName('Panel'); if (p) { avisar('Hojas listas. Siguiente paso: «IA Lab → 2. Guardar la clave de DeepSeek».'); return; } p = ss.insertSheet('Panel', 0);
   p.clear();
   const col = c => { let s = ''; while (c > 0) { const m = (c - 1) % 26; s = String.fromCharCode(65 + m) + s; c = Math.floor((c - 1) / 26); } return s; };
   const first = HEADERS.Resultados.indexOf('Logros') + 2; // columna (1 = A) del primer módulo
