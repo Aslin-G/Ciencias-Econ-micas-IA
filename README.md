@@ -34,23 +34,26 @@ Sin configurar nada, la aplicación funciona de inmediato en modo local: guarda 
 ## 2. Conectar la hoja de cálculo y el chat (opcional, recomendado)
 
 1. Crea una hoja de cálculo en Google Drive y ábrela.
-2. Entra a **Extensiones → Apps Script**, borra lo que haya y pega todo el contenido de `apps-script/Code.gs`. Guarda.
-3. Ve a **Configuración del proyecto (⚙️) → Propiedades de la secuencia de comandos** y agrega:
-   - `DEEPSEEK_API_KEY` = tu clave de DeepSeek (https://platform.deepseek.com/api_keys).
-   - Opcionales: `DEEPSEEK_MODEL` (por defecto `deepseek-flash`), `CHAT_LIMIT` (mensajes por estudiante por hora; por defecto 40) y `COURSE_CODE` (un código de tu curso).
-4. En el editor, elige la función **`setup`** y pulsa **Ejecutar**. Acepta los permisos (si aparece «Google no ha verificado esta app»: *Configuración avanzada → Ir al proyecto*). Se crean las hojas y el panel.
-5. Elige **`probarDeepSeek`** y ejecútala: en el registro de ejecución debe aparecer `"ok": true`.
-6. Pulsa **Implementar → Nueva implementación → Aplicación web**, con «Ejecutar como: **Yo**» y «Quién tiene acceso: **Cualquier usuario**». Copia la URL que termina en **`/exec`**.
-7. En GitHub abre `index.html`, pulsa el lápiz ✏️ para editarlo, busca `apiUrl: ''` (cerca de la línea 1007) y pega la URL entre las comillas:
+2. Entra a **Extensiones → Apps Script**, borra lo que haya, pega todo el contenido de `apps-script/Code.gs` y guarda (Ctrl + S).
+3. Vuelve a la hoja y recárgala: aparece el menú **IA Lab**.
+4. **IA Lab → 1. Preparar las hojas.** La primera vez Google pide permisos: elige tu cuenta y, si aparece «Google no ha verificado esta app», pulsa *Configuración avanzada → Ir a … (no seguro) → Permitir*. Se crean las hojas y el panel.
+5. **IA Lab → 2. Guardar la clave de DeepSeek** y pega tu clave (https://platform.deepseek.com/api_keys). Queda en las propiedades del script, no en la hoja.
+6. **IA Lab → 3. Probar el chat con DeepSeek:** debe aparecer una respuesta corta.
+7. En Apps Script pulsa **Implementar → Nueva implementación → ⚙️ → Aplicación web**, con «Ejecutar como: **Yo**» y «Quién tiene acceso: **Cualquier usuario**». Pulsa **Implementar** y copia la URL que termina en **`/exec`**.
+8. En GitHub abre `index.html`, pulsa el lápiz ✏️ para editarlo, busca `apiUrl: ''` (cerca de la línea 1007) y pega la URL entre las comillas:
 
    ```js
    apiUrl: 'https://script.google.com/macros/s/.../exec',
    ```
 
-   Si definiste `COURSE_CODE`, escribe el mismo valor en `courseCode`. Pulsa **Commit changes**; GitHub Pages se actualiza solo.
-8. Prueba con tu propio correo: en la barra de la evaluación debe verse «● Sincronizado con la hoja».
+   Pulsa **Commit changes**; GitHub Pages se actualiza solo en uno o dos minutos.
+9. Prueba con tu propio correo: entra, responde una pregunta y revisa que aparezcas en las hojas **Estudiantes** e **Interacciones**.
 
-Si más adelante cambias el script, publica una versión nueva desde **Implementar → Gestionar implementaciones → editar → Nueva versión**; así la URL no cambia.
+El registro es automático y no muestra avisos durante la evaluación. Al entrar, el estudiante acepta que se registren su nombre, su correo y sus interacciones.
+
+Opcional, en **Configuración del proyecto (⚙️) → Propiedades de la secuencia de comandos**: `DEEPSEEK_MODEL` (por defecto `deepseek-flash`), `CHAT_LIMIT` (mensajes por estudiante por hora; por defecto 40) y `COURSE_CODE` (si lo defines, escribe el mismo valor en `courseCode` dentro de `index.html`).
+
+Si más adelante cambias el script, publica una versión nueva desde **Implementar → Gestionar implementaciones → ✏️ → Versión: Nueva versión → Implementar**; así la URL no cambia.
 
 ### Hojas que se crean
 
@@ -64,7 +67,7 @@ Si más adelante cambias el script, publica una versión nueva desde **Implement
 
 ### Permitir que un estudiante presente de nuevo
 
-En Apps Script, abre la función `permitirNuevoIntento`, cambia el correo y ejecútala.
+En la hoja, **IA Lab → Permitir un nuevo intento…** y escribe el correo del estudiante.
 
 ## 3. Ajustes en `index.html`
 
