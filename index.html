@@ -959,7 +959,7 @@ body:has(.chip.picked) [data-drop]:not(.bank){border-color:color-mix(in srgb,var
             <div class="eyebrow">ACCESO A LA EVALUACIÓN</div><h2>Identifícate para comenzar</h2>
             <label>Nombre completo <input id="access-name" name="name" autocomplete="name" required maxlength="120" placeholder="Ej.: Ana María Pérez"></label>
             <label>Correo electrónico <input id="access-email" name="email" type="email" autocomplete="email" required maxlength="254" placeholder="nombre@correo.com"></label>
-            <ul class="entry-rules"><li><span data-icon="memory"></span> Tus respuestas se guardan solas en este navegador.</li><li><span data-icon="chat"></span> Nova, la tutora con IA, explica conceptos pero no responde las preguntas.</li></ul>
+            <ul class="entry-rules"><li><span data-icon="memory"></span> Tus respuestas se guardan automáticamente.</li><li><span data-icon="chat"></span> Nova, la tutora con IA, explica conceptos pero no responde las preguntas.</li></ul>
             <label class="consent"><input type="checkbox" id="access-consent"> <span>Acepto que se registren mi nombre, mi correo y mis interacciones con este material para fines académicos.</span></label>
             <p id="access-error" class="course-error" role="alert" hidden></p>
             <button id="access-submit" class="dialog-primary" type="submit">Comenzar evaluación →</button>
@@ -1004,7 +1004,7 @@ body:has(.chip.picked) [data-drop]:not(.bank){border-color:color-mix(in srgb,var
    ===================================================================== */
 const CONFIG = {
   appName: 'IA Lab',
-  apiUrl: '',
+  apiUrl: 'https://script.google.com/macros/s/AKfycbwpsSibBvXw5o7QjO4fT8TQg6hx6NKiDhtPf76U4h7xRp1Lht-WxF7bnY457xla53_m/exec',
   courseCode: '',
   chatInExam: true,              // Nova (chat con IA) disponible durante la evaluación
   showAnswersAfterSubmit: true,  // al entregar, el estudiante ve respuestas correctas y explicaciones
@@ -1717,7 +1717,7 @@ function wire() {
     if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) return showError('#access-error', 'Escribe un correo electrónico válido.');
     if (!$('#access-consent').checked) return showError('#access-error', 'Debes aceptar el registro de tus interacciones para continuar.');
     user = { name, email }; saved.user = user; persist(); showError('#access-error', '');
-    const btn = $('#access-submit'); btn.disabled = true; btn.textContent = 'Conectando…';
+    const btn = $('#access-submit'); btn.disabled = true; btn.textContent = 'Cargando…';
     enter().finally(() => { btn.disabled = false; btn.textContent = 'Comenzar evaluación →'; });
   };
   $('#course-access-btn').onclick = goEntry;
@@ -2051,7 +2051,7 @@ const Nova = (() => {
     if (opened && lastIdx !== S.mi && lastIdx >= 0 && M) add('guide', `Ahora estás en «${M.name}». Pregúntame por los conceptos de este módulo.`);
     lastIdx = S.mi;
   }
-  function open() { opened = true; panel.hidden = false; launcher.setAttribute('aria-expanded', 'true'); root.classList.add('lumi-open'); update(); if (!greeted) { greeted = true; add('guide', `¡Hola${user ? ', ' + user.name.split(' ')[0] : ''}! Soy **Nova**, tu tutora de inteligencia artificial. Te explico conceptos (tokens, temperatura, contexto, alucinaciones…) y te ayudo a escribir mejores prompts.\n\nNo respondo las preguntas de la evaluación por ti, pero sí te ayudo a entender los conceptos. ${canSend() ? 'Estoy conectada a una IA en línea: lo que me escribas queda registrado para fines académicos.' : 'Ahora estoy en modo local.'}`); Track.log('nova_abierta', {}); } input.focus(); }
+  function open() { opened = true; panel.hidden = false; launcher.setAttribute('aria-expanded', 'true'); root.classList.add('lumi-open'); update(); if (!greeted) { greeted = true; add('guide', `¡Hola${user ? ', ' + user.name.split(' ')[0] : ''}! Soy **Nova**, tu tutora de inteligencia artificial. Te explico conceptos (tokens, temperatura, contexto, alucinaciones…) y te ayudo a escribir mejores prompts.\n\nNo respondo las preguntas de la evaluación por ti, pero sí te ayudo a entender los conceptos. ${canSend() ? '' : 'Ahora estoy en modo local.'}`); Track.log('nova_abierta', {}); } input.focus(); }
   function close() { opened = false; panel.hidden = true; launcher.setAttribute('aria-expanded', 'false'); root.classList.remove('lumi-open'); }
   function mount() {
     root = el('div', 'lumi-root nova-root'); root.id = 'lumi-root';
@@ -2084,7 +2084,6 @@ const Nova = (() => {
 
 /* =====================  ARRANQUE  ===================== */
 (function boot() {
-  const who = $('.exam-who'); if (who && !$('#sync-chip')) { const s = document.createElement('span'); s.id = 'sync-chip'; s.className = 'sync-chip'; who.append(s); }
   init();
 })();
 

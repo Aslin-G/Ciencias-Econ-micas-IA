@@ -6,7 +6,11 @@
  *   3) Hace de intermediario seguro con la API de DeepSeek para el chat «Nova»
  *      (la clave NUNCA viaja al navegador del estudiante).
  *
- * Configuración (Configuración del proyecto ⚙️ → Propiedades de la secuencia de comandos):
+ * Uso: pega este código en la hoja (Extensiones → Apps Script), guarda y recarga la hoja.
+ * Aparece el menú «IA Lab» para preparar las hojas, guardar la clave de DeepSeek y probar el chat.
+ * Después: Implementar → Nueva implementación → Aplicación web (Ejecutar como: Yo · Acceso: Cualquier usuario).
+ *
+ * Propiedades del script (el menú guarda la clave; las demás son opcionales):
  *   DEEPSEEK_API_KEY  (obligatoria para el chat)  tu clave sk-…
  *   DEEPSEEK_MODEL    (opcional) por defecto: deepseek-flash
  *   COURSE_CODE       (opcional) si la defines, la app debe enviar el mismo código (CONFIG.courseCode)
@@ -153,7 +157,7 @@ function chat(email, name, req) {
   const j = JSON.parse(body);
   const reply = (((j.choices || [])[0] || {}).message || {}).content || '';
   const usage = j.usage || {};
-  withLock(() => {
+  if (ctx.origin !== 'prueba') withLock(() => {
     appendRows('Chat', [[new Date(), email, name, clean(ctx.reto, 40), clean(ctx.origin, 30), msgs[msgs.length - 1].content, clean(reply, 45000), usage.prompt_tokens || '', usage.completion_tokens || '', model]]);
     upsertStudent(email, name, s => { s.mensajes = (Number(s.mensajes) || 0) + 1; });
   });
@@ -172,8 +176,10 @@ function sheet(name) {
   return sh;
 }
 function appendRows(name, rows) {
-  if (!rows.length) return; const sh = sheet(name);
-  sh.getRange(sh.getLastRow() + 1, 1, rows.length, rows[0].length).setValues(rows.map(r => r.map(safe)));
+  if (!rows.length) return; const sh = sheet(name), start = sh.getLastRow() + 1;
+  const falta = start + rows.length - 1 - sh.getMaxRows(); // la hoja no crece sola con setValues
+  if (falta > 0) sh.insertRowsAfter(sh.getMaxRows(), Math.max(falta, 500));
+  sh.getRange(start, 1, rows.length, rows[0].length).setValues(rows.map(r => r.map(safe)));
 }
 function findRow(name, col, email) {
   const sh = sheet(name), last = sh.getLastRow(); if (last < 2) return null;
@@ -205,7 +211,7 @@ function setup() {
   Object.keys(HEADERS).forEach(sheet);
   const ss = book();
   Object.keys(HEADERS).forEach(n => {
-    const sh = ss.getSheetByName(n); sh.autoResizeColumns(1, Math.min(HEADERS[n].length, 8));
+    const sh = ss.getSheetByName(n); HEADERS[n].forEach((h, i) => sh.setColumnWidth(i + 1, /^(Correo|Nombre|Logros)$/.test(h) ? 230 : /JSON|Detalle/.test(h) ? 420 : 150));
     if (n === 'Interacciones') sh.setColumnWidth(8, 520);
     if (n === 'Respuestas') { sh.setColumnWidth(7, 340); sh.setColumnWidth(8, 420); sh.setColumnWidth(9, 420); }
     if (n === 'Chat') { sh.setColumnWidth(6, 360); sh.setColumnWidth(7, 520); }
@@ -227,20 +233,56 @@ function setup() {
   p.setColumnWidth(1, 300); p.setColumnWidth(2, 120); p.setColumnWidth(4, 110); p.setColumnWidth(5, 220); p.setColumnWidth(6, 170);
   SpreadsheetApp.flush();
   Logger.log('Listo: hojas creadas. Ahora implementa como aplicación web.');
+  avisar('Hojas listas. Siguiente paso: «IA Lab → 2. Guardar la clave de DeepSeek».');
 }
 
-/** 2) Prueba la clave de DeepSeek: mira el resultado en «Registro de ejecución». */
-function probarDeepSeek() {
-  const r = chat('prueba@ialab.co', 'Prueba', { messages: [{ role: 'user', content: 'En una frase: ¿qué es un token?' }], context: { origin: 'prueba' } });
-  Logger.log(JSON.stringify(r, null, 2));
-}
+/** 2) Prueba la clave de DeepSeek desde el editor: mira el resultado en «Registro de ejecución». */
+function probarDeepSeek() { probarChat(); }
 
-/** 3) Permite que un estudiante presente de nuevo: escribe su correo y ejecuta. */
+/** 3) Permite que un estudiante presente de nuevo: escribe su correo y ejecuta (o usa el menú IA Lab). */
 function permitirNuevoIntento() {
-  const email = 'correo.del.estudiante@ejemplo.com'.toLowerCase(); // ← cambia este correo
+  reiniciarIntento('correo.del.estudiante@ejemplo.com'); // ← cambia este correo
+}
+function reiniciarIntento(email) {
+  email = String(email || '').trim().toLowerCase();
   withLock(() => {
     ['Resultados', 'Progreso'].forEach(n => { const f = findRow(n, n === 'Resultados' ? 2 : 1, email); if (f) sheet(n).deleteRow(f.row); });
     const f = findRow('Estudiantes', 1, email); if (f) sheet('Estudiantes').getRange(f.row, 7).setValue('Nuevo intento autorizado');
   });
   Logger.log('Intento reiniciado para ' + email + '. Pídele que entre de nuevo con su correo.');
 }
+
+/* ---------------- Menú «IA Lab» dentro de la hoja ---------------- */
+function onOpen() {
+  SpreadsheetApp.getUi().createMenu('IA Lab')
+    .addItem('1. Preparar las hojas', 'setup')
+    .addItem('2. Guardar la clave de DeepSeek', 'guardarClave')
+    .addItem('3. Probar el chat con DeepSeek', 'probarChat')
+    .addSeparator()
+    .addItem('Permitir un nuevo intento…', 'nuevoIntento')
+    .addToUi();
+}
+function guardarClave() {
+  const ui = SpreadsheetApp.getUi();
+  const r = ui.prompt('Clave de DeepSeek', 'Pega tu clave de API (empieza por sk-). Se guarda en las propiedades del script, no en la hoja.', ui.ButtonSet.OK_CANCEL);
+  if (r.getSelectedButton() !== ui.Button.OK) return;
+  const key = r.getResponseText().trim();
+  if (!/^sk-[A-Za-z0-9_-]{10,}$/.test(key)) { ui.alert('La clave no tiene el formato esperado: debe empezar por sk-.'); return; }
+  PropertiesService.getScriptProperties().setProperty('DEEPSEEK_API_KEY', key);
+  ui.alert('Clave guardada. Siguiente paso: «IA Lab → 3. Probar el chat con DeepSeek».');
+}
+function probarChat() {
+  const r = chat('prueba@ialab.co', 'Prueba', { messages: [{ role: 'user', content: 'En una frase: ¿qué es un token?' }], context: { origin: 'prueba' } });
+  avisar(r.ok ? 'El chat funciona. Respuesta de prueba:\n\n' + r.reply : 'El chat no respondió: ' + r.error);
+  Logger.log(JSON.stringify(r, null, 2));
+}
+function nuevoIntento() {
+  const ui = SpreadsheetApp.getUi();
+  const r = ui.prompt('Permitir un nuevo intento', 'Escribe el correo del estudiante:', ui.ButtonSet.OK_CANCEL);
+  if (r.getSelectedButton() !== ui.Button.OK) return;
+  const email = r.getResponseText().trim().toLowerCase();
+  if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) { ui.alert('Ese correo no es válido.'); return; }
+  reiniciarIntento(email);
+  ui.alert('Listo: ' + email + ' puede volver a presentar la evaluación.');
+}
+function avisar(msg) { try { SpreadsheetApp.getUi().alert(msg); } catch (e) { Logger.log(msg); } }
